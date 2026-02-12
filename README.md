@@ -1,14 +1,249 @@
-# housePricePredict
-## Introduction:
-This is a in-course Final Project about predicting housing value of New Taipei City.   
-We Train the model based on open data by [New Taipei CIty Government][1], whcih include multiple attribute related to house.   
-The Project currently not include a user interface, which we will keep improving.   
-The training result is plotted as a diagram in the <span style="color:#80ed99">.\Image\Plot</span>    
-You can see the whole training logic in <span style="color:#f77f00">house.ipynb file</span>   
-THANKS
-## Training Logic
+# 新北市房價預測專案
 
+## 一、專案簡介
 
+本專案為人工智慧課程期末專題，目標為利用新北市政府開放資料平台之不動產實價登錄資料，建立房價預測模型。
 
+完整實驗流程與模型實作請參考：
 
-[1]:https://data.ntpc.gov.tw
+- `house_total_price.ipynb`
+- `house_average_price.ipynb`
+- `人工智慧第七組＿房價預測.pdf`
+
+本專案重點包含：
+
+1. 嚴謹的資料前處理流程  
+2. 多種模型效能比較  
+3. Random Forest 超參數調整結果分析  
+
+---
+
+# 二、資料集說明
+
+**資料來源：** 新北市政府資料開放平台  
+**資料名稱：** 新北市不動產實價登錄資訊－買賣案件  
+
+資料包含多筆實際交易紀錄，每筆資料含有以下欄位：
+
+- 鄉鎮市區 (district)
+- 土地移轉總面積
+- 建物移轉總面積
+- 主建物面積
+- 移轉層次
+- 建物型態
+- 房 / 廳 / 衛 數量
+- 陽台面積
+- 是否有電梯
+- 總價 (預測目標)
+
+本專案預測目標包含：
+
+- 房屋總價
+- 每坪單價
+
+---
+
+# 三、資料前處理 (Data Preprocessing)
+
+資料前處理為本專案的核心步驟，直接影響模型效能。
+
+## 1️⃣ 資料清洗
+
+原始資料存在以下問題：
+
+- 包含「非房地」交易資料
+- 包含「非自住用途」資料
+- 類別型欄位為文字格式，尚未數值化
+
+### (1) 過濾非房地資料
+
+僅保留包含「房地」之交易紀錄。
+
+### (2) 過濾非自住用途
+
+僅保留用途為「住家用」之資料。
+
+### (3) 類別型欄位轉換
+
+使用 `factorize()` 將以下欄位轉為數值型態：
+
+- district
+- floors
+- building_type
+- elevator
+
+使模型可以進行運算。
+
+---
+
+## 2️⃣ 特徵標準化（Neural Network 專用）
+
+為了讓神經網路收斂更穩定，我們對特徵進行標準化：
+
+$x' = \frac{x - \mu}{\sigma}$
+
+此步驟僅應用於 Neural Network 模型。
+
+---
+
+# 四、模型比較
+
+本專案測試以下模型：
+
+1. Linear Regression  
+2. Neural Network  
+3. Decision Tree  
+4. Random Forest  
+5. Fine-tuned Random Forest  
+
+模型評估指標：
+
+- RMSE (Root Mean Squared Error)
+- MAE (Mean Absolute Error)
+
+---
+
+## 1️⃣ Linear Regression
+
+假設特徵與目標值之間存在線性關係。
+
+### 預測結果
+
+**總價：**
+- RMSE: 5,683,545.84  
+- MAE: 3,610,047.48  
+
+**每坪單價：**
+- RMSE: 42,179.96  
+- MAE: 31,067.87  
+
+👉 表現較差，顯示房價並非單純線性關係。
+
+---
+
+## 2️⃣ Neural Network
+
+可捕捉非線性關係。
+
+嘗試模型變化：
+
+- 基本模型
+- 增加隱藏層
+- 增加神經元數量
+- 加入 Elastic Net Regularization
+
+### 最終結果
+
+**總價：**
+- RMSE: 3,912,103.85  
+- MAE: 2,409,522.21  
+
+**每坪單價：**
+- RMSE: 32,234.78  
+- MAE: 22,834.02  
+
+👉 較 Linear Regression 明顯改善  
+👉 深層與寬層模型出現過擬合現象  
+👉 Regularization 反而整體提升 loss  
+
+---
+
+## 3️⃣ Decision Tree
+
+單棵決策樹模型。
+
+**總價：**
+- RMSE: 5,004,351.07  
+- MAE: 2,576,376.29  
+
+**每坪單價：**
+- RMSE: 37,442.67  
+- MAE: 22,341.89  
+
+👉 不穩定且容易過擬合。
+
+---
+
+## 4️⃣ Random Forest（未調參）
+
+由多棵決策樹組成之集成模型。
+
+**總價：**
+- RMSE: 3,953,547.67  
+- MAE: 1,935,751.49  
+
+**每坪單價：**
+- RMSE: 28,498.59  
+- MAE: 16,785.26  
+
+👉 為所有模型中最佳表現  
+👉 穩定且泛化能力佳  
+
+---
+
+# 五、Random Forest 超參數調整
+
+為進一步提升模型效能，我們進行：
+
+- GridSearchCV
+- RandomizedSearchCV
+- K-Fold Cross Validation
+
+---
+
+## 1️⃣ GridSearchCV
+
+**調整前：**
+- RMSE: 28,498.59  
+- MAE: 16,785.26  
+
+**調整後：**
+- RMSE: 28,346.06  
+- MAE: 16,721.40  
+
+👉 效能小幅提升。
+
+---
+
+## 2️⃣ RandomizedSearchCV
+
+**最佳結果：**
+- RMSE: 28,358.56  
+- MAE: 16,583.73  
+
+👉 MAE 略優於 GridSearch  
+👉 訓練時間較短  
+
+---
+
+# 六、最終模型比較
+
+| 模型 | RMSE (每坪) | MAE (每坪) |
+|------|-------------|------------|
+| Linear Regression | 42,179.96 | 31,067.87 |
+| Neural Network | 32,234.78 | 22,834.02 |
+| Decision Tree | 37,442.67 | 22,341.89 |
+| Random Forest | 28,498.59 | 16,785.26 |
+| Fine-Tuned RF | **28,346.06** | **16,583.73** |
+
+---
+
+# 七、結論
+
+1. 資料前處理（篩選 + 編碼）對模型影響極大。  
+2. Random Forest 為本資料集最適合模型。  
+3. 超參數調整僅帶來有限改善。  
+4. 與其大量調參，不如提升資料品質與特徵工程。  
+
+---
+
+# 八、專案總結
+
+本專案完整展示：
+
+- 實務資料清洗流程
+- 多模型比較分析
+- 神經網路結構調整實驗
+- Random Forest 超參數搜尋策略
+
+適合作為機器學習實務專案作品展示。
